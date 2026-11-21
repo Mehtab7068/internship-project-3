@@ -59,3 +59,12 @@ Corrupted JSON values are handled safely by the storage helpers.
 - `admin/` — demo administration interface
 
 This is a frontend simulation, not a production booking or authentication system. Credentials and mock bookings are stored in the browser and no real payments are processed.
+
+## Code guide for beginners
+
+- `index.html` is the main customer page. It loads the CSS and starts `js/app.js`.
+- `js/app.js` decides which customer page to show from the URL hash, such as `#destinations`.
+- `js/data.js` contains the starting destination, package, hotel, and flight records.
+- `js/app.js` and `admin/admin.js` use small helper functions for `localStorage`. Their names begin with `readFromStorage` or `saveToStorage`.
+- `admin/admin.js` is divided into clearly named sections: login, overview, users, destinations, packages, bookings, and add/edit actions.
+- Browser data is stored under keys beginning with `velora_`. Clearing site data in browser settings resets the demo.

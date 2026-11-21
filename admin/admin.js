@@ -1,46 +1,877 @@
-import {destinations,packages,hotels} from "../js/data.js";
+/*
+ * Velora admin dashboard
+ *
+ * This file contains the small demo back-office used by the project.
+ * All records are read from and written to localStorage, so no server is needed.
+ */
 
-const $=s=>document.querySelector(s),read=(k,f)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch{return f}},write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-function init(){if(!read("velora_users",null))write("velora_users",[ {id:"u1",name:"Elena Rossi",email:"customer@velora.com",phone:"+44 20 7946 0182",password:"Customer123!",role:"customer",status:"Active"} ]);if(!read("velora_destinations",null))write("velora_destinations",destinations);if(!read("velora_packages",null))write("velora_packages",packages);if(!read("velora_hotels",null))write("velora_hotels",hotels);if(!read("velora_bookings",null))write("velora_bookings",[ {id:"VEL-2841",type:"Tour",destination:"Amalfi Coast",date:"2026-10-12",travelDate:"2026-12-05",price:2480,status:"Confirmed",userId:"u1"} ])}
-init();
-function icons(){if(window.lucide)lucide.createIcons({attrs:{strokeWidth:1.7}})}
-function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;$("#toast-region").append(e);setTimeout(()=>e.remove(),2600)}
-function isAdmin(){return sessionStorage.getItem("velora_admin")==="true"}
+import {
+  destinations,
+  packages,
+  hotels
+} from "../js/data.js";
 
-function login(){document.querySelector("#admin-app").innerHTML=`<main class="admin-login"><form class="auth-box" id="admin-login"><a class="brand" style="color:#173f35"><span class="brand-mark"><i data-lucide="compass"></i></span>VELORA</a><h1 style="font:44px var(--serif);margin:18px 0 6px">Administration</h1><p style="color:var(--muted)">Sign in to manage Velora operations.</p><div class="form"><label>Email</label><input name="email" type="email" required value="admin@velora.com"><label>Password</label><input name="password" type="password" required value="Admin123!"><button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px">Sign in</button><div id="admin-error"></div></div></form></main>`;icons();$("#admin-login").addEventListener("submit",e=>{e.preventDefault();const d=new FormData(e.target);if(d.get("email").toLowerCase().trim()==="admin@velora.com"&&d.get("password")==="Admin123!"){sessionStorage.setItem("velora_admin","true");render()}else $("#admin-error").innerHTML=`<div class="auth-error">Invalid demo credentials</div>`})}
-
-function shell(content,title="Overview"){return `<div class="admin-shell"><aside class="admin-sidebar"><div class="brand"><span class="brand-mark"><i data-lucide="compass"></i></span>VELORA</div><nav class="admin-nav"><button data-view="overview" ${title==="Overview"?"class=active":""}><i data-lucide="layout-dashboard"></i>Overview</button><button data-view="users" ${title==="Users"?"class=active":""}><i data-lucide="users"></i>Users</button><button data-view="destinations" ${title==="Destinations"?"class=active":""}><i data-lucide="map"></i>Destinations</button><button data-view="packages" ${title==="Packages"?"class=active":""}><i data-lucide="luggage"></i>Packages</button><button data-view="bookings" ${title==="Bookings"?"class=active":""}><i data-lucide="ticket"></i>Bookings</button></nav><button id="admin-logout" class="btn" style="margin-top:30px;width:100%;background:rgba(255,255,255,.1);color:white"><i data-lucide="log-out"></i>Sign out</button></aside><main class="admin-main"><div class="admin-top"><h1>${title}</h1><a class="btn btn-outline" href="../index.html">View website</a></div>${content}</main></div>`}
-function table(headers,rows){return `<div class="table-wrap"><table class="table admin-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`}
-
-function overview(){const users=read("velora_users",[]),b=read("velora_bookings",[]),ds=read("velora_destinations",[]),ps=read("velora_packages",[]);const content=`<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)"><div class="stat"><span>Total users</span><strong>${users.length}</strong></div><div class="stat"><span>Total bookings</span><strong>${b.length}</strong></div><div class="stat"><span>Destinations</span><strong>${ds.length}</strong></div><div class="stat"><span>Packages</span><strong>${ps.length}</strong></div></div><h2 style="font:34px var(--serif);margin-top:36px">Recent bookings</h2>${table(["Reference","Guest","Type","Destination","Status"],b.slice(0,8).map(x=>{const u=users.find(v=>v.id===x.userId);return `<tr><td>${x.id}</td><td>${u?.name||"Guest"}</td><td>${x.type}</td><td>${x.destination}</td><td><span class="status ${x.status.toLowerCase()}">${x.status}</span></td></tr>`}))}`;$("#admin-app").innerHTML=shell(content,"Overview");bindShell()}
-
-function users(){const list=read("velora_users",[]);const content=`<div class="admin-toolbar"><input id="admin-search" placeholder="Search users"></div><div id="admin-list">${table(["Name","Email","Role","Status","Actions"],list.map(u=>`<tr><td><b>${u.name}</b></td><td>${u.email}</td><td>${u.role}</td><td><button class="btn btn-outline" style="min-height:34px" data-toggle-user="${u.id}">${u.status}</button></td><td><div class="admin-actions"><button title="Edit" data-edit-user="${u.id}"><i data-lucide="pencil"></i></button><button title="Delete" data-delete-user="${u.id}"><i data-lucide="trash-2"></i></button></div></td></tr>`))}</div>`;$("#admin-app").innerHTML=shell(content,"Users");bindShell();$("#admin-search").addEventListener("input",e=>{const q=e.target.value.toLowerCase(),l=read("velora_users",[]).filter(u=>u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q));$("#admin-list").innerHTML=table(["Name","Email","Role","Status","Actions"],l.map(u=>`<tr><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td>${u.status}</td><td><div class="admin-actions"><button data-edit-user="${u.id}"><i data-lucide="pencil"></i></button><button data-delete-user="${u.id}"><i data-lucide="trash-2"></i></button></div></td></tr>`));icons();bindCrud()});bindCrud()}
-
-function destinationsView(){const list=read("velora_destinations",[]);const content=`<div class="admin-toolbar"><input id="admin-search" placeholder="Search destinations"><button class="btn btn-primary" id="add-destination">Add destination</button></div><div id="admin-list">${table(["Destination","Country","Style","Price","Actions"],list.map(d=>`<tr><td><b>${d.name}</b></td><td>${d.country}</td><td>${d.category}</td><td>$${d.price}</td><td><div class="admin-actions"><button data-edit-destination="${d.id}"><i data-lucide="pencil"></i></button><button data-delete-destination="${d.id}"><i data-lucide="trash-2"></i></button></div></td></tr>`))}</div>`;$("#admin-app").innerHTML=shell(content,"Destinations");bindShell();$("#add-destination").addEventListener("click",()=>openCrud("destination",null));$("#admin-search").addEventListener("input",e=>{const q=e.target.value.toLowerCase();const l=read("velora_destinations",[]).filter(d=>d.name.toLowerCase().includes(q)||d.country.toLowerCase().includes(q));$("#admin-list").innerHTML=table(["Destination","Country","Style","Price","Actions"],l.map(d=>`<tr><td>${d.name}</td><td>${d.country}</td><td>${d.category}</td><td>$${d.price}</td><td><div class="admin-actions"><button data-edit-destination="${d.id}"><i data-lucide="pencil"></i></button><button data-delete-destination="${d.id}"><i data-lucide="trash-2"></i></button></div></td></tr>`));icons();bindCrud()});bindCrud()}
-
-function packagesView(){const list=read("velora_packages",[]);const content=`<div class="admin-toolbar"><input id="admin-search" placeholder="Search packages"><button class="btn btn-primary" id="add-package">Add package</button></div><div id="admin-list">${table(["Package","Destination","Days","Price","Actions"],list.map(p=>`<tr><td><b>${p.name}</b></td><td>${p.destination}</td><td>${p.duration}</td><td>$${p.price}</td><td><div class="admin-actions"><button data-edit-package="${p.id}"><i data-lucide="pencil"></i></button><button data-delete-package="${p.id}"><i data-lucide="trash-2"></i></button></div></td></tr>`))}</div>`;$("#admin-app").innerHTML=shell(content,"Packages");bindShell();$("#add-package").addEventListener("click",()=>openCrud("package",null));$("#admin-search").addEventListener("input",e=>{const q=e.target.value.toLowerCase(),l=read("velora_packages",[]).filter(p=>p.name.toLowerCase().includes(q)||p.destination.toLowerCase().includes(q));$("#admin-list").innerHTML=table(["Package","Destination","Days","Price","Actions"],l.map(p=>`<tr><td>${p.name}</td><td>${p.destination}</td><td>${p.duration}</td><td>$${p.price}</td><td><div class="admin-actions"><button data-edit-package="${p.id}"><i data-lucide="pencil"></i></button><button data-delete-package="${p.id}"><i data-lucide="trash-2"></i></button></div></td></tr>`));icons();bindCrud()});bindCrud()}
-
-function bookingsView(){const list=read("velora_bookings",[]),users=read("velora_users",[]);const content=`<div class="admin-toolbar"><input id="admin-search" placeholder="Search booking ID or destination"><select id="booking-filter"><option value="">All types</option><option>Tour</option><option>Hotel</option><option>Flight</option></select></div><div id="admin-list">${table(["Reference","Guest","Type","Destination","Status","Actions"],list.map(b=>{const u=users.find(x=>x.id===b.userId);return `<tr><td>${b.id}</td><td>${u?.name||"Guest"}</td><td>${b.type}</td><td>${b.destination}</td><td><select data-status="${b.id}"><option ${b.status==="Confirmed"?"selected":""}>Confirmed</option><option ${b.status==="Pending"?"selected":""}>Pending</option><option ${b.status==="Completed"?"selected":""}>Completed</option><option ${b.status==="Cancelled"?"selected":""}>Cancelled</option></select></td><td><div class="admin-actions"><button data-delete-booking="${b.id}" title="Cancel"><i data-lucide="ban"></i></button></div></td></tr>`}))}</div>`;$("#admin-app").innerHTML=shell(content,"Bookings");bindShell();$("#admin-search").addEventListener("input",filterBookings);$("#booking-filter").addEventListener("change",filterBookings);bindCrud()}
-function filterBookings(){const q=$("#admin-search").value.toLowerCase(),type=$("#booking-filter").value,list=read("velora_bookings",[]).filter(b=>(!type||b.type===type)&&(!q||b.id.toLowerCase().includes(q)||b.destination.toLowerCase().includes(q)));const users=read("velora_users",[]);$("#admin-list").innerHTML=table(["Reference","Guest","Type","Destination","Status","Actions"],list.map(b=>`<tr><td>${b.id}</td><td>${users.find(u=>u.id===b.userId)?.name||"Guest"}</td><td>${b.type}</td><td>${b.destination}</td><td><span class="status ${b.status.toLowerCase()}">${b.status}</span></td><td><button data-delete-booking="${b.id}" class="btn btn-outline" style="min-height:34px">Cancel</button></td></tr>`));bindCrud();icons()}
-
-function openCrud(type,item){
-  const editing=!!item;let d=item||{};const fields=type==="destination"?`<div class="admin-form-grid"><div class="form"><label>Name</label><input name="name" value="${d.name||""}" required></div><div class="form"><label>Country</label><input name="country" value="${d.country||""}" required></div><div class="form"><label>Category</label><input name="category" value="${d.category||""}" required></div><div class="form"><label>Starting price</label><input name="price" type="number" value="${d.price||""}" required></div></div>`:`<div class="admin-form-grid"><div class="form"><label>Name</label><input name="name" value="${d.name||""}" required></div><div class="form"><label>Destination</label><input name="destination" value="${d.destination||""}" required></div><div class="form"><label>Duration</label><input name="duration" type="number" value="${d.duration||""}" required></div><div class="form"><label>Price</label><input name="price" type="number" value="${d.price||""}" required></div></div>`;
-  const el=document.createElement("div");el.className="modal-backdrop";el.innerHTML=`<div class="modal"><div class="modal-head"><h2>${editing?"Edit":"Add"} ${type}</h2><button type="button" data-admin-close aria-label="Close"><i data-lucide="x"></i></button></div><form class="form" id="admin-crud-form">${fields}<button type="submit" class="btn btn-primary" style="margin-top:16px">Save</button></form></div>`;document.body.append(el);icons();el.querySelector("[data-admin-close]").addEventListener("click",()=>el.remove());el.querySelector("form").addEventListener("submit",e=>{e.preventDefault();const f=new FormData(e.target),key=type==="destination"?"velora_destinations":"velora_packages",list=read(key,[]);const obj={...(d||{}),id:d.id||type[0]+Date.now(),name:f.get("name").trim(),country:type==="destination"?f.get("country").trim():d.country,destination:type==="destination"?d.destination||f.get("country").trim():f.get("destination").trim(),category:type==="destination"?f.get("category").trim():d.category||"Culture",duration:+(f.get("duration")||d.duration||5),price:+f.get("price"),rating:d.rating||4.8,popularity:d.popularity||75,image:d.image||"https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85",description:d.description||"A thoughtfully curated Velora journey.",highlights:d.highlights||[f.get("category").trim()||"Local culture","Signature landscapes","Exceptional hospitality"],best:d.best||"Most of the year, depending on local weather",itinerary:d.itinerary||[["Arrival","Meet your local host"],["Explore","Discover the destination"],["Departure","Private transfer"]],included:d.included||["Accommodation","Breakfast"],excluded:d.excluded||["Flights"]};if(!obj.name||!obj.price||obj.price<0){toast("Name and price are required");return}if(editing){const i=list.findIndex(x=>x.id===d.id);if(i>=0)list[i]=obj}else list.push(obj);write(key,list);el.remove();toast(`${type==="destination"?"Destination":"Package"} saved`);render()})
+// Short helpers keep repeated browser operations easy to read.
+function findElement(selector) {
+  return document.querySelector(selector);
 }
 
-function bindCrud(){
-  document.querySelectorAll("[data-delete-user]").forEach(b=>b.addEventListener("click",()=>{const l=read("velora_users",[]),i=l.findIndex(u=>u.id===b.dataset.deleteUser);if(i>=0){l.splice(i,1);write("velora_users",l);toast("User deleted");users()}}));
-  document.querySelectorAll("[data-toggle-user]").forEach(b=>b.addEventListener("click",()=>{const l=read("velora_users",[]),u=l.find(x=>x.id===b.dataset.toggleUser);u.status=u.status==="Active"?"Inactive":"Active";write("velora_users",l);toast("Status updated");users()}));
-  document.querySelectorAll("[data-edit-user]").forEach(b=>b.addEventListener("click",()=>{const u=read("velora_users",[]).find(x=>x.id===b.dataset.editUser);const n=prompt("User name",u.name);if(n){u.name=n;write("velora_users",read("velora_users",[]).map(x=>x.id===u.id?u:x));toast("User updated");users()}}));
-  document.querySelectorAll("[data-delete-destination]").forEach(b=>b.addEventListener("click",()=>{const l=read("velora_destinations",[]).filter(x=>x.id!==b.dataset.deleteDestination);write("velora_destinations",l);toast("Destination deleted");destinationsView()}));
-  document.querySelectorAll("[data-edit-destination]").forEach(b=>{b.addEventListener("click",()=>openCrud("destination",read("velora_destinations",[]).find(x=>x.id===b.dataset.editDestination)))});
-  document.querySelectorAll("[data-delete-package]").forEach(b=>b.addEventListener("click",()=>{const l=read("velora_packages",[]).filter(x=>x.id!==b.dataset.deletePackage);write("velora_packages",l);toast("Package deleted");packagesView()}));
-  document.querySelectorAll("[data-edit-package]").forEach(b=>{b.addEventListener("click",()=>openCrud("package",read("velora_packages",[]).find(x=>x.id===b.dataset.editPackage)))});
-  document.querySelectorAll("[data-delete-booking]").forEach(b=>b.addEventListener("click",()=>{const l=read("velora_bookings",[]),x=l.find(v=>v.id===b.dataset.deleteBooking);if(x){x.status="Cancelled";write("velora_bookings",l);toast("Booking cancelled");bookingsView()}}));
-  document.querySelectorAll("[data-status]").forEach(s=>s.addEventListener("change",()=>{const l=read("velora_bookings",[]),b=l.find(x=>x.id===s.dataset.status);b.status=s.value;write("velora_bookings",l);toast("Booking status updated")}));
+function readFromStorage(key, fallbackValue) {
+  try {
+    const savedValue = localStorage.getItem(key);
+    return savedValue ? JSON.parse(savedValue) : fallbackValue;
+  } catch (error) {
+    // If saved JSON is damaged, start with a safe fallback value.
+    return fallbackValue;
+  }
 }
 
-function bindShell(){document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{const v=b.dataset.view;if(v==="overview")overview();if(v==="users")users();if(v==="destinations")destinationsView();if(v==="packages")packagesView();if(v==="bookings")bookingsView()}));$("#admin-logout")?.addEventListener("click",()=>{sessionStorage.removeItem("velora_admin");login()});icons()}
+function saveToStorage(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
 
-let current="overview";function render(){if(!isAdmin()){login();return}overview()}
-render()
+function createIcons() {
+  if (window.lucide) {
+    window.lucide.createIcons({
+      attrs: { strokeWidth: 1.7 }
+    });
+  }
+}
+
+function showToast(message) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  findElement("#toast-region").append(toast);
+
+  setTimeout(() => toast.remove(), 2600);
+}
+
+function isAdminLoggedIn() {
+  return sessionStorage.getItem("velora_admin") === "true";
+}
+
+// Seed demo data only when the browser does not already have it.
+function initializeDemoData() {
+  if (!readFromStorage("velora_users", null)) {
+    saveToStorage("velora_users", [
+      {
+        id: "u1",
+        name: "Elena Rossi",
+        email: "customer@velora.com",
+        phone: "+44 20 7946 0182",
+        password: "Customer123!",
+        role: "customer",
+        status: "Active"
+      }
+    ]);
+  }
+
+  if (!readFromStorage("velora_destinations", null)) {
+    saveToStorage("velora_destinations", destinations);
+  }
+
+  if (!readFromStorage("velora_packages", null)) {
+    saveToStorage("velora_packages", packages);
+  }
+
+  if (!readFromStorage("velora_hotels", null)) {
+    saveToStorage("velora_hotels", hotels);
+  }
+
+  if (!readFromStorage("velora_bookings", null)) {
+    saveToStorage("velora_bookings", [
+      {
+        id: "VEL-2841",
+        type: "Tour",
+        destination: "Amalfi Coast",
+        date: "2026-10-12",
+        travelDate: "2026-12-05",
+        price: 2480,
+        status: "Confirmed",
+        userId: "u1"
+      }
+    ]);
+  }
+}
+
+initializeDemoData();
+
+// ------------------------------
+// Admin login
+// ------------------------------
+
+function renderLoginPage() {
+  findElement("#admin-app").innerHTML = `
+    <main class="admin-login">
+      <form class="auth-box" id="admin-login">
+        <a class="brand" style="color:#173f35">
+          <span class="brand-mark"><i data-lucide="compass"></i></span>
+          VELORA
+        </a>
+
+        <h1 style="font:44px var(--serif);margin:18px 0 6px">Administration</h1>
+        <p style="color:var(--muted)">Sign in to manage Velora operations.</p>
+
+        <div class="form">
+          <label>Email</label>
+          <input name="email" type="email" required value="admin@velora.com">
+
+          <label>Password</label>
+          <input name="password" type="password" required value="Admin123!">
+
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px">
+            Sign in
+          </button>
+          <div id="admin-error"></div>
+        </div>
+      </form>
+    </main>
+  `;
+
+  createIcons();
+
+  findElement("#admin-login").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const email = formData.get("email").toLowerCase().trim();
+    const password = formData.get("password");
+
+    if (email === "admin@velora.com" && password === "Admin123!") {
+      sessionStorage.setItem("velora_admin", "true");
+      renderDashboard();
+      return;
+    }
+
+    findElement("#admin-error").innerHTML =
+      '<div class="auth-error">Invalid demo credentials</div>';
+  });
+}
+
+// ------------------------------
+// Shared admin layout and table
+// ------------------------------
+
+function getAdminShell(pageContent, pageTitle = "Overview") {
+  return `
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <div class="brand">
+          <span class="brand-mark"><i data-lucide="compass"></i></span>
+          VELORA
+        </div>
+
+        <nav class="admin-nav">
+          <button data-view="overview" ${pageTitle === "Overview" ? "class=active" : ""}>
+            <i data-lucide="layout-dashboard"></i>Overview
+          </button>
+          <button data-view="users" ${pageTitle === "Users" ? "class=active" : ""}>
+            <i data-lucide="users"></i>Users
+          </button>
+          <button data-view="destinations" ${pageTitle === "Destinations" ? "class=active" : ""}>
+            <i data-lucide="map"></i>Destinations
+          </button>
+          <button data-view="packages" ${pageTitle === "Packages" ? "class=active" : ""}>
+            <i data-lucide="luggage"></i>Packages
+          </button>
+          <button data-view="bookings" ${pageTitle === "Bookings" ? "class=active" : ""}>
+            <i data-lucide="ticket"></i>Bookings
+          </button>
+        </nav>
+
+        <button id="admin-logout" class="btn"
+          style="margin-top:30px;width:100%;background:rgba(255,255,255,.1);color:white">
+          <i data-lucide="log-out"></i>Sign out
+        </button>
+      </aside>
+
+      <main class="admin-main">
+        <div class="admin-top">
+          <h1>${pageTitle}</h1>
+          <a class="btn btn-outline" href="../index.html">View website</a>
+        </div>
+        ${pageContent}
+      </main>
+    </div>
+  `;
+}
+
+function getTable(headers, rows) {
+  return `
+    <div class="table-wrap">
+      <table class="table admin-table">
+        <thead>
+          <tr>${headers.map(header => `<th>${header}</th>`).join("")}</tr>
+        </thead>
+        <tbody>${rows.join("")}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function attachShellEvents() {
+  document.querySelectorAll("[data-view]").forEach(button => {
+    button.addEventListener("click", () => {
+      const viewName = button.dataset.view;
+
+      if (viewName === "overview") renderOverview();
+      if (viewName === "users") renderUsers();
+      if (viewName === "destinations") renderDestinations();
+      if (viewName === "packages") renderPackages();
+      if (viewName === "bookings") renderBookings();
+    });
+  });
+
+  findElement("#admin-logout")?.addEventListener("click", () => {
+    sessionStorage.removeItem("velora_admin");
+    renderLoginPage();
+  });
+
+  createIcons();
+}
+
+// ------------------------------
+// Overview page
+// ------------------------------
+
+function renderOverview() {
+  const users = readFromStorage("velora_users", []);
+  const bookings = readFromStorage("velora_bookings", []);
+  const destinationsList = readFromStorage("velora_destinations", []);
+  const packagesList = readFromStorage("velora_packages", []);
+
+  const pageContent = `
+    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat"><span>Total users</span><strong>${users.length}</strong></div>
+      <div class="stat"><span>Total bookings</span><strong>${bookings.length}</strong></div>
+      <div class="stat"><span>Destinations</span><strong>${destinationsList.length}</strong></div>
+      <div class="stat"><span>Packages</span><strong>${packagesList.length}</strong></div>
+    </div>
+
+    <h2 style="font:34px var(--serif);margin-top:36px">Recent bookings</h2>
+    ${getTable(
+      ["Reference", "Guest", "Type", "Destination", "Status"],
+      bookings.slice(0, 8).map(booking => {
+        const guest = users.find(user => user.id === booking.userId);
+        return `
+          <tr>
+            <td>${booking.id}</td>
+            <td>${guest?.name || "Guest"}</td>
+            <td>${booking.type}</td>
+            <td>${booking.destination}</td>
+            <td>
+              <span class="status ${booking.status.toLowerCase()}">${booking.status}</span>
+            </td>
+          </tr>
+        `;
+      })
+    )}
+  `;
+
+  findElement("#admin-app").innerHTML = getAdminShell(pageContent, "Overview");
+  attachShellEvents();
+}
+
+// ------------------------------
+// User management
+// ------------------------------
+
+function getUserRows(users) {
+  return users.map(user => `
+    <tr>
+      <td><b>${user.name}</b></td>
+      <td>${user.email}</td>
+      <td>${user.role}</td>
+      <td>
+        <button class="btn btn-outline" style="min-height:34px"
+          data-toggle-user="${user.id}">
+          ${user.status}
+        </button>
+      </td>
+      <td>
+        <div class="admin-actions">
+          <button title="Edit" data-edit-user="${user.id}">
+            <i data-lucide="pencil"></i>
+          </button>
+          <button title="Delete" data-delete-user="${user.id}">
+            <i data-lucide="trash-2"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `);
+}
+
+function renderUsers() {
+  const users = readFromStorage("velora_users", []);
+  const pageContent = `
+    <div class="admin-toolbar">
+      <input id="admin-search" placeholder="Search users">
+    </div>
+    <div id="admin-list">
+      ${getTable(
+        ["Name", "Email", "Role", "Status", "Actions"],
+        getUserRows(users)
+      )}
+    </div>
+  `;
+
+  findElement("#admin-app").innerHTML = getAdminShell(pageContent, "Users");
+  attachShellEvents();
+  attachCrudEvents();
+
+  findElement("#admin-search").addEventListener("input", event => {
+    const searchText = event.target.value.toLowerCase().trim();
+    const filteredUsers = readFromStorage("velora_users", []).filter(user =>
+      user.name.toLowerCase().includes(searchText) ||
+      user.email.toLowerCase().includes(searchText)
+    );
+
+    findElement("#admin-list").innerHTML = getTable(
+      ["Name", "Email", "Role", "Status", "Actions"],
+      getUserRows(filteredUsers)
+    );
+
+    createIcons();
+    attachCrudEvents();
+  });
+}
+
+// ------------------------------
+// Destination and package management
+// ------------------------------
+
+function renderDestinations() {
+  const destinationList = readFromStorage("velora_destinations", []);
+  const pageContent = `
+    <div class="admin-toolbar">
+      <input id="admin-search" placeholder="Search destinations">
+      <button class="btn btn-primary" id="add-destination">Add destination</button>
+    </div>
+    <div id="admin-list">
+      ${getTable(
+        ["Destination", "Country", "Style", "Price", "Actions"],
+        destinationList.map(destination => `
+          <tr>
+            <td><b>${destination.name}</b></td>
+            <td>${destination.country}</td>
+            <td>${destination.category}</td>
+            <td>$${destination.price}</td>
+            <td>
+              <div class="admin-actions">
+                <button data-edit-destination="${destination.id}">
+                  <i data-lucide="pencil"></i>
+                </button>
+                <button data-delete-destination="${destination.id}">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `)
+      )}
+    </div>
+  `;
+
+  findElement("#admin-app").innerHTML = getAdminShell(pageContent, "Destinations");
+  attachShellEvents();
+
+  findElement("#add-destination").addEventListener("click", () => {
+    openCrudModal("destination", null);
+  });
+
+  findElement("#admin-search").addEventListener("input", event => {
+    const searchText = event.target.value.toLowerCase().trim();
+    const filteredDestinations = readFromStorage("velora_destinations", [])
+      .filter(destination =>
+        destination.name.toLowerCase().includes(searchText) ||
+        destination.country.toLowerCase().includes(searchText)
+      );
+
+    findElement("#admin-list").innerHTML = getTable(
+      ["Destination", "Country", "Style", "Price", "Actions"],
+      filteredDestinations.map(destination => `
+        <tr>
+          <td>${destination.name}</td>
+          <td>${destination.country}</td>
+          <td>${destination.category}</td>
+          <td>$${destination.price}</td>
+          <td>
+            <div class="admin-actions">
+              <button data-edit-destination="${destination.id}">
+                <i data-lucide="pencil"></i>
+              </button>
+              <button data-delete-destination="${destination.id}">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `)
+    );
+
+    createIcons();
+    attachCrudEvents();
+  });
+
+  attachCrudEvents();
+}
+
+function renderPackages() {
+  const packageList = readFromStorage("velora_packages", []);
+  const pageContent = `
+    <div class="admin-toolbar">
+      <input id="admin-search" placeholder="Search packages">
+      <button class="btn btn-primary" id="add-package">Add package</button>
+    </div>
+    <div id="admin-list">
+      ${getTable(
+        ["Package", "Destination", "Days", "Price", "Actions"],
+        packageList.map(travelPackage => `
+          <tr>
+            <td><b>${travelPackage.name}</b></td>
+            <td>${travelPackage.destination}</td>
+            <td>${travelPackage.duration}</td>
+            <td>$${travelPackage.price}</td>
+            <td>
+              <div class="admin-actions">
+                <button data-edit-package="${travelPackage.id}">
+                  <i data-lucide="pencil"></i>
+                </button>
+                <button data-delete-package="${travelPackage.id}">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `)
+      )}
+    </div>
+  `;
+
+  findElement("#admin-app").innerHTML = getAdminShell(pageContent, "Packages");
+  attachShellEvents();
+
+  findElement("#add-package").addEventListener("click", () => {
+    openCrudModal("package", null);
+  });
+
+  findElement("#admin-search").addEventListener("input", event => {
+    const searchText = event.target.value.toLowerCase().trim();
+    const filteredPackages = readFromStorage("velora_packages", [])
+      .filter(travelPackage =>
+        travelPackage.name.toLowerCase().includes(searchText) ||
+        travelPackage.destination.toLowerCase().includes(searchText)
+      );
+
+    findElement("#admin-list").innerHTML = getTable(
+      ["Package", "Destination", "Days", "Price", "Actions"],
+      filteredPackages.map(travelPackage => `
+        <tr>
+          <td>${travelPackage.name}</td>
+          <td>${travelPackage.destination}</td>
+          <td>${travelPackage.duration}</td>
+          <td>$${travelPackage.price}</td>
+          <td>
+            <div class="admin-actions">
+              <button data-edit-package="${travelPackage.id}">
+                <i data-lucide="pencil"></i>
+              </button>
+              <button data-delete-package="${travelPackage.id}">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `)
+    );
+
+    createIcons();
+    attachCrudEvents();
+  });
+
+  attachCrudEvents();
+}
+
+// ------------------------------
+// Booking management
+// ------------------------------
+
+function getBookingRows(bookings) {
+  const users = readFromStorage("velora_users", []);
+
+  return bookings.map(booking => {
+    const guest = users.find(user => user.id === booking.userId);
+    return `
+      <tr>
+        <td>${booking.id}</td>
+        <td>${guest?.name || "Guest"}</td>
+        <td>${booking.type}</td>
+        <td>${booking.destination}</td>
+        <td>
+          <select data-status="${booking.id}">
+            <option ${booking.status === "Confirmed" ? "selected" : ""}>Confirmed</option>
+            <option ${booking.status === "Pending" ? "selected" : ""}>Pending</option>
+            <option ${booking.status === "Completed" ? "selected" : ""}>Completed</option>
+            <option ${booking.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
+          </select>
+        </td>
+        <td>
+          <div class="admin-actions">
+            <button data-delete-booking="${booking.id}" title="Cancel">
+              <i data-lucide="ban"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+}
+
+function filterBookings() {
+  const searchText = findElement("#admin-search").value.toLowerCase();
+  const selectedType = findElement("#booking-filter").value;
+
+  const matchingBookings = readFromStorage("velora_bookings", [])
+    .filter(booking => {
+      const matchesType = !selectedType || booking.type === selectedType;
+      const matchesSearch =
+        !searchText ||
+        booking.id.toLowerCase().includes(searchText) ||
+        booking.destination.toLowerCase().includes(searchText);
+
+      return matchesType && matchesSearch;
+    });
+
+  findElement("#admin-list").innerHTML = getTable(
+    ["Reference", "Guest", "Type", "Destination", "Status", "Actions"],
+    getBookingRows(matchingBookings)
+  );
+
+  createIcons();
+  attachCrudEvents();
+}
+
+function renderBookings() {
+  const bookings = readFromStorage("velora_bookings", []);
+  const pageContent = `
+    <div class="admin-toolbar">
+      <input id="admin-search" placeholder="Search booking ID or destination">
+      <select id="booking-filter">
+        <option value="">All types</option>
+        <option>Tour</option>
+        <option>Hotel</option>
+        <option>Flight</option>
+      </select>
+    </div>
+    <div id="admin-list">
+      ${getTable(
+        ["Reference", "Guest", "Type", "Destination", "Status", "Actions"],
+        getBookingRows(bookings)
+      )}
+    </div>
+  `;
+
+  findElement("#admin-app").innerHTML = getAdminShell(pageContent, "Bookings");
+  attachShellEvents();
+
+  findElement("#admin-search").addEventListener("input", filterBookings);
+  findElement("#booking-filter").addEventListener("change", filterBookings);
+  attachCrudEvents();
+}
+
+// ------------------------------
+// Shared add/edit modal
+// ------------------------------
+
+function openCrudModal(typeName, existingItem) {
+  const isEditing = Boolean(existingItem);
+  const item = existingItem || {};
+
+  let formFields = "";
+
+  if (typeName === "destination") {
+    formFields = `
+      <div class="admin-form-grid">
+        <div class="form">
+          <label>Name</label>
+          <input name="name" value="${item.name || ""}" required>
+        </div>
+        <div class="form">
+          <label>Country</label>
+          <input name="country" value="${item.country || ""}" required>
+        </div>
+        <div class="form">
+          <label>Category</label>
+          <input name="category" value="${item.category || ""}" required>
+        </div>
+        <div class="form">
+          <label>Starting price</label>
+          <input name="price" type="number" min="0" value="${item.price || ""}" required>
+        </div>
+      </div>
+    `;
+  } else {
+    formFields = `
+      <div class="admin-form-grid">
+        <div class="form">
+          <label>Name</label>
+          <input name="name" value="${item.name || ""}" required>
+        </div>
+        <div class="form">
+          <label>Destination</label>
+          <input name="destination" value="${item.destination || ""}" required>
+        </div>
+        <div class="form">
+          <label>Duration</label>
+          <input name="duration" type="number" min="1"
+            value="${item.duration || ""}" required>
+        </div>
+        <div class="form">
+          <label>Price</label>
+          <input name="price" type="number" min="0"
+            value="${item.price || ""}" required>
+        </div>
+      </div>
+    `;
+  }
+
+  const modal = document.createElement("div");
+  modal.className = "modal-backdrop";
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <h2>${isEditing ? "Edit" : "Add"} ${typeName}</h2>
+        <button type="button" data-admin-close aria-label="Close">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form class="form" id="admin-crud-form">
+        ${formFields}
+        <button type="submit" class="btn btn-primary" style="margin-top:16px">
+          Save
+        </button>
+      </form>
+    </div>
+  `;
+
+  document.body.append(modal);
+  createIcons();
+
+  modal.querySelector("[data-admin-close]").addEventListener("click", () => {
+    modal.remove();
+  });
+
+  modal.querySelector("form").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const storageKey =
+      typeName === "destination"
+        ? "velora_destinations"
+        : "velora_packages";
+
+    const savedList = readFromStorage(storageKey, []);
+    const name = formData.get("name").trim();
+    const price = Number(formData.get("price"));
+
+    if (!name || Number.isNaN(price) || price < 0) {
+      showToast("Name and a valid price are required");
+      return;
+    }
+
+    const savedItem = {
+      ...item,
+      id: item.id || typeName[0] + Date.now(),
+      name,
+      country: typeName === "destination"
+        ? formData.get("country").trim()
+        : item.country,
+      destination: typeName === "destination"
+        ? item.destination || formData.get("country").trim()
+        : formData.get("destination").trim(),
+      category: typeName === "destination"
+        ? formData.get("category").trim()
+        : item.category || "Culture",
+      duration: Number(formData.get("duration") || item.duration || 5),
+      price,
+      rating: item.rating || 4.8,
+      popularity: item.popularity || 75,
+      image: item.image ||
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85",
+      description: item.description || "A thoughtfully curated Velora journey.",
+      highlights: item.highlights || [
+        formData.get("category")?.trim() || "Local culture",
+        "Signature landscapes",
+        "Exceptional hospitality"
+      ],
+      best: item.best || "Most of the year, depending on local weather",
+      itinerary: item.itinerary || [
+        ["Arrival", "Meet your local host"],
+        ["Explore", "Discover the destination"],
+        ["Departure", "Private transfer"]
+      ],
+      included: item.included || ["Accommodation", "Breakfast"],
+      excluded: item.excluded || ["Flights"]
+    };
+
+    if (isEditing) {
+      const itemIndex = savedList.findIndex(record => record.id === item.id);
+      if (itemIndex >= 0) {
+        savedList[itemIndex] = savedItem;
+      }
+    } else {
+      savedList.push(savedItem);
+    }
+
+    saveToStorage(storageKey, savedList);
+    modal.remove();
+    showToast(`${typeName === "destination" ? "Destination" : "Package"} saved`);
+    renderDashboard();
+  });
+}
+
+// ------------------------------
+// Button actions for all tables
+// ------------------------------
+
+function attachCrudEvents() {
+  document.querySelectorAll("[data-delete-user]").forEach(button => {
+    button.addEventListener("click", () => {
+      const users = readFromStorage("velora_users", []);
+      const remainingUsers = users.filter(
+        user => user.id !== button.dataset.deleteUser
+      );
+
+      saveToStorage("velora_users", remainingUsers);
+      showToast("User deleted");
+      renderUsers();
+    });
+  });
+
+  document.querySelectorAll("[data-toggle-user]").forEach(button => {
+    button.addEventListener("click", () => {
+      const users = readFromStorage("velora_users", []);
+      const selectedUser = users.find(
+        user => user.id === button.dataset.toggleUser
+      );
+
+      if (selectedUser) {
+        selectedUser.status =
+          selectedUser.status === "Active" ? "Inactive" : "Active";
+        saveToStorage("velora_users", users);
+        showToast("Status updated");
+        renderUsers();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-edit-user]").forEach(button => {
+    button.addEventListener("click", () => {
+      const users = readFromStorage("velora_users", []);
+      const selectedUser = users.find(
+        user => user.id === button.dataset.editUser
+      );
+
+      if (!selectedUser) return;
+
+      const newName = prompt("User name", selectedUser.name);
+      if (newName) {
+        selectedUser.name = newName;
+        saveToStorage("velora_users", users);
+        showToast("User updated");
+        renderUsers();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-delete-destination]").forEach(button => {
+    button.addEventListener("click", () => {
+      const destinationsList = readFromStorage("velora_destinations", [])
+        .filter(destination =>
+          destination.id !== button.dataset.deleteDestination
+        );
+
+      saveToStorage("velora_destinations", destinationsList);
+      showToast("Destination deleted");
+      renderDestinations();
+    });
+  });
+
+  document.querySelectorAll("[data-edit-destination]").forEach(button => {
+    button.addEventListener("click", () => {
+      const destination = readFromStorage("velora_destinations", [])
+        .find(item => item.id === button.dataset.editDestination);
+      openCrudModal("destination", destination);
+    });
+  });
+
+  document.querySelectorAll("[data-delete-package]").forEach(button => {
+    button.addEventListener("click", () => {
+      const packageList = readFromStorage("velora_packages", [])
+        .filter(travelPackage =>
+          travelPackage.id !== button.dataset.deletePackage
+        );
+
+      saveToStorage("velora_packages", packageList);
+      showToast("Package deleted");
+      renderPackages();
+    });
+  });
+
+  document.querySelectorAll("[data-edit-package]").forEach(button => {
+    button.addEventListener("click", () => {
+      const travelPackage = readFromStorage("velora_packages", [])
+        .find(item => item.id === button.dataset.editPackage);
+      openCrudModal("package", travelPackage);
+    });
+  });
+
+  document.querySelectorAll("[data-delete-booking]").forEach(button => {
+    button.addEventListener("click", () => {
+      const bookings = readFromStorage("velora_bookings", []);
+      const selectedBooking = bookings.find(
+        booking => booking.id === button.dataset.deleteBooking
+      );
+
+      if (selectedBooking) {
+        selectedBooking.status = "Cancelled";
+        saveToStorage("velora_bookings", bookings);
+        showToast("Booking cancelled");
+        renderBookings();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-status]").forEach(select => {
+    select.addEventListener("change", () => {
+      const bookings = readFromStorage("velora_bookings", []);
+      const selectedBooking = bookings.find(
+        booking => booking.id === select.dataset.status
+      );
+
+      if (selectedBooking) {
+        selectedBooking.status = select.value;
+        saveToStorage("velora_bookings", bookings);
+        showToast("Booking status updated");
+      }
+    });
+  });
+}
+
+// ------------------------------
+// Application start
+// ------------------------------
+
+function renderDashboard() {
+  if (!isAdminLoggedIn()) {
+    renderLoginPage();
+    return;
+  }
+
+  renderOverview();
+}
+
+renderDashboard();

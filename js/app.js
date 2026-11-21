@@ -1,12 +1,61 @@
-import {destinations, packages, hotels, flights} from "./data.js";
+/*
+ * Velora customer website
+ *
+ * The page is loaded through hash links such as #destinations.
+ * JavaScript reads the hash, chooses a page renderer, and updates #app.
+ */
 
-const $=s=>document.querySelector(s);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
-const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n);
+import { destinations, packages, hotels, flights } from "./data.js";
 
-function read(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch{return fallback}}
-function write(key,value){localStorage.setItem(key,JSON.stringify(value))}
-function init(){
+// Find one HTML element by CSS selector.
+const findElement = selector => document.querySelector(selector);
+
+// Convert text to safe HTML before placing it inside a template.
+const escapeHtml = text => String(text ?? "").replace(
+  /[&<>"']/g,
+  character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[character]
+);
+
+// Format numbers consistently as US dollars.
+const formatMoney = amount =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(amount);
+
+// Read and write JSON values in browser localStorage.
+function readFromStorage(key, fallbackValue) {
+  try {
+    const savedValue = localStorage.getItem(key);
+    return savedValue ? JSON.parse(savedValue) : fallbackValue;
+  } catch (error) {
+    return fallbackValue;
+  }
+}
+
+function saveToStorage(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+// Friendly short names are kept for the existing page templates.
+const $ = findElement;
+const esc = escapeHtml;
+const money = formatMoney;
+const read = readFromStorage;
+const write = saveToStorage;
+
+// ------------------------------
+// Demo data setup
+// ------------------------------
+
+function initializeDemoData() {
   if(!read("velora_users",null))write("velora_users",[
     {id:"u1",name:"Elena Rossi",email:"customer@velora.com",phone:"+44 20 7946 0182",password:"Customer123!",role:"customer",status:"Active"},
     {id:"u2",name:"Marcus Chen",email:"marcus@example.com",phone:"+1 415 555 0185",password:"Demo123!",role:"customer",status:"Active"}
@@ -25,7 +74,7 @@ function init(){
   ]);
   if(!read("velora_wishlist",null))write("velora_wishlist",[]);
 }
-init();
+initializeDemoData();
 
 const getDest=()=>read("velora_destinations",destinations);
 const getPkgs=()=>read("velora_packages",packages);
