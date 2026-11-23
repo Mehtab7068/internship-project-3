@@ -105,7 +105,7 @@ function renderLoginPage() {
   findElement("#admin-app").innerHTML = `
     <main class="admin-login">
       <form class="auth-box" id="admin-login">
-        <a class="brand" style="color:#173f35">
+        <a class="brand" href="../index.html" style="color:#173f35">
           <span class="brand-mark"><i data-lucide="compass"></i></span>
           VELORA
         </a>
@@ -662,7 +662,16 @@ function openCrudModal(typeName, existingItem) {
 
   modal.querySelector("[data-admin-close]").addEventListener("click", () => {
     modal.remove();
+    document.removeEventListener("keydown", handleModalEscape);
   });
+
+  const handleModalEscape = event => {
+    if (event.key === "Escape") {
+      modal.remove();
+      document.removeEventListener("keydown", handleModalEscape);
+    }
+  };
+  document.addEventListener("keydown", handleModalEscape);
 
   modal.querySelector("form").addEventListener("submit", event => {
     event.preventDefault();
@@ -695,7 +704,13 @@ function openCrudModal(typeName, existingItem) {
       category: typeName === "destination"
         ? formData.get("category").trim()
         : item.category || "Culture",
-      duration: Number(formData.get("duration") || item.duration || 5),
+      duration: typeName === "destination"
+        ? (
+            typeof item.duration === "string" && item.duration.includes("days")
+              ? item.duration
+              : destinations.find(destination => destination.id === item.id)?.duration || "7 days"
+          )
+        : Number(formData.get("duration") || item.duration || 5),
       price,
       rating: item.rating || 4.8,
       popularity: item.popularity || 75,
