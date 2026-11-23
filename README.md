@@ -35,6 +35,7 @@ Additional customer accounts can be created through the registration screen.
 ## Data
 
 Velora initializes demo data in `localStorage` only when a key is missing. User-generated and admin changes persist in the browser.
+Flight demo bookings also save passenger names and the lead contact details in `velora_bookings`; use test details only. The demo does not collect passport or payment information.
 
 Main keys:
 
